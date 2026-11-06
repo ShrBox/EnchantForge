@@ -1,0 +1,12 @@
+# xmake / build output
+.xmake/
+build/
+bin/
+
+# IDE
+.vs/
+.vscode/
+*.user
+
+# 本地打包
+*.zip
