@@ -1,11 +1,13 @@
-﻿on:
+on:
   release:
     types:
       - published
 
 jobs:
   build:
-    runs-on: windows-latest
+    # 必须用 VS 2022 工具链：windows-latest 已切到 VS 2026 (MSVC 14.51)，
+    # 编 LeviLamina 26.51.9 会因 incomplete type 报错。
+    runs-on: windows-2025
     steps:
       - uses: actions/checkout@v7
 

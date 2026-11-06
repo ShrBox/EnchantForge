@@ -1,11 +1,14 @@
-﻿on:
+on:
   pull_request:
   push:
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: windows-latest
+    # windows-latest 目前是 VS 2026 (MSVC 14.51)，编 LeviLamina 26.51.9 会报
+    # "forward declaration of 'Command'"（incomplete type）——这是 LL 源码头文件在
+    # 新 MSVC 下的问题，不是本插件的问题。windows-2025 仍然是 VS 2022 (MSVC 14.44)。
+    runs-on: windows-2025
     steps:
       - uses: actions/checkout@v7
 
