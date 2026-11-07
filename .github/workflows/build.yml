@@ -2,20 +2,21 @@ on:
   pull_request:
   push:
   workflow_dispatch:
-
+  
 jobs:
   build:
-    # windows-latest 目前是 VS 2026 (MSVC 14.51)，编 LeviLamina 26.51.9 会报
-    # "forward declaration of 'Command'"（incomplete type）——这是 LL 源码头文件在
-    # 新 MSVC 下的问题，不是本插件的问题。windows-2025 仍然是 VS 2022 (MSVC 14.44)。
-    runs-on: windows-2025
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        target_type:
+          - server
     steps:
       - uses: actions/checkout@v7
 
       - uses: xmake-io/github-action-setup-xmake@v1
         # with:
         #   xmake-version: branch@master
-
+      
       - uses: actions/cache@v6
         with:
           path: |
@@ -24,22 +25,22 @@ jobs:
           restore-keys: |
             xmake-
 
+      - name: Setup LLVM
+        uses: ZhongRuoyu/setup-llvm@v0
+        with:
+          llvm-version: 22
+
       - run: |
           xmake repo -u
 
       - run: |
-          xmake repo --add -g levimc-repo https://github.com/LiteLDev/xmake-repo.git
-          xrepo install -y -j1 -p windows -a x64 -m release -f "target_type=server" "levilamina 26.51.9"
-          xrepo install -y -j1 -p windows -a x64 -m release levibuildscript
+          xmake f -a x64 -m release -p windows -v --target_type=${{ matrix.target_type }} -y
 
       - run: |
-          xmake f -a x64 -m release -p windows -v --target_type=server -y
-
-      - run: |
-          xmake -v -y -j1
+          xmake -v -y
 
       - uses: actions/upload-artifact@v7
         with:
-          name: ${{ github.event.repository.name }}-${{ github.sha }}-server-windows-x64
+          name: ${{ github.event.repository.name }}-${{ github.sha }}-${{ matrix.target_type }}-windows-x64
           path: |
             bin/

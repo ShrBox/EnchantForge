@@ -2,12 +2,14 @@ on:
   release:
     types:
       - published
-
+  
 jobs:
   build:
-    # 必须用 VS 2022 工具链：windows-latest 已切到 VS 2026 (MSVC 14.51)，
-    # 编 LeviLamina 26.51.9 会因 incomplete type 报错。
-    runs-on: windows-2025
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        target_type:
+          - server
     steps:
       - uses: actions/checkout@v7
 
@@ -23,23 +25,23 @@ jobs:
           restore-keys: |
             xmake-
 
+      - name: Setup LLVM
+        uses: ZhongRuoyu/setup-llvm@v0
+        with:
+          llvm-version: 22
+
       - run: |
           xmake repo -u
 
       - run: |
-          xmake repo --add -g levimc-repo https://github.com/LiteLDev/xmake-repo.git
-          xrepo install -y -j1 -p windows -a x64 -m release -f "target_type=server" "levilamina 26.51.9"
-          xrepo install -y -j1 -p windows -a x64 -m release levibuildscript
+          xmake f -a x64 -m release -p windows --target_type=${{ matrix.target_type }} -y
 
       - run: |
-          xmake f -a x64 -m release -p windows --target_type=server -y
-
-      - run: |
-          xmake -w -y -j1
+          xmake -w -y
 
       - uses: actions/upload-artifact@v7
         with:
-          name: ${{ github.event.repository.name }}-${{ github.sha }}-server-windows-x64
+          name: ${{ github.event.repository.name }}-${{ github.sha }}-${{ matrix.target_type }}-windows-x64
           path: |
             bin/
 
@@ -64,23 +66,27 @@ jobs:
       - update-release-notes
     permissions:
       contents: write
+    strategy:
+      matrix:
+        target_type:
+          - server
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
 
       - uses: actions/download-artifact@v8
         with:
-          name: ${{ github.event.repository.name }}-${{ github.sha }}-server-windows-x64
+          name: ${{ github.event.repository.name }}-${{ github.sha }}-${{ matrix.target_type }}-windows-x64
           path: artifact
 
       - run: |
           cp CHANGELOG.md LICENSE README.md artifact/
 
       - run: |
-          zip -r ../${{ github.event.repository.name }}-server-windows-x64.zip *
+          zip -r ../${{ github.event.repository.name }}-${{ matrix.target_type }}-windows-x64.zip *
         working-directory: artifact
 
       - uses: softprops/action-gh-release@v3
         with:
           files: |
-            ${{ github.event.repository.name }}-server-windows-x64.zip
+            ${{ github.event.repository.name }}-${{ matrix.target_type }}-windows-x64.zip
